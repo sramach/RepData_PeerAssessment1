@@ -2,6 +2,11 @@
 
 ## Loading and preprocessing the data
 
+* Read the activity data
+* Create a filtered dataset, omitting the NA values
+* Calculate the Daily Total Steps 
+* Calculate the Total Steps for each inteval across days
+
 
 ```r
 require(dplyr)
@@ -14,6 +19,10 @@ interval.total.steps <- activity.data.filtered %>% group_by(interval) %>% summar
 
 
 ## What is mean total number of steps taken per day?
+
+* Calculate the Mean and Median for the Total Daily Steps
+* Plot the Histogram of Total Daily Steps
+
 
 ```r
 mean.daily.steps <- mean(daily.steps$total)
@@ -30,6 +39,9 @@ hist(daily.steps$total, xlab="Total Daily Steps", main= "Histogram of Total Dail
 
 
 ## What is the average daily activity pattern?
+
+* Determine the max step interval
+* Create the plot of Total Steps Across Days by Interval
 
 
 ```r
@@ -49,12 +61,19 @@ text(toString(max.step.interval), x= max.step.interval, y = max(interval.total.s
 
 ## Imputing missing values
 
+* Determine the count of missing values
+
 
 ```r
 na.steps <- sum(is.na(activity.data$steps))
 ```
 
 1. **The  number of rows in the dataset missing  steps is   _2304_  (out of _17568)_**
+
+
+* Compute the total steps for a given interval across all days 
+* Determine the average steps for a given interval (Total from previous steps divided by the number of days)
+* For a day/interval combination that is missing data, use the interval step average computed from the previous step as the imputed value
 
 
 ```r
@@ -82,26 +101,25 @@ hist(daily.steps.imputed$total, xlab="Total Daily Steps(imputed missing values)"
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+* Create a factor column to detemine Weekend/Weekday
+* Compute the Average Steps across weekdays, weekends by interval
+* Generate the reuqired panel xyplot 
+
 
 
 ```r
 activity.data.imputed<- 
   mutate(activity.data.imputed, daytype = 
            factor(ifelse( weekdays(as.Date(date,"%Y-%m-%d")) %in% c("Saturday","Sunday"),"Weekend","Weekday")))
+
+interval.total.steps.imputed <- activity.data.imputed %>% group_by(interval,daytype) %>% summarise(total=mean(steps))
 require(lattice)
-```
-
-```
-## Loading required package: lattice
-```
-
-```r
 par(bg = "lightskyblue1")
-xyplot(steps ~ interval| levels(daytype), 
-           data = activity.data.imputed,
+xyplot(total ~ interval| levels(daytype), 
+           data = interval.total.steps.imputed,
            type = "l",
            xlab = "Interval",
-           ylab = "Number of steps",
+           ylab = "Avg. Number of steps",
            layout=c(1,2))
 ```
 
