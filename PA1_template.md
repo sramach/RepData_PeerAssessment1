@@ -119,7 +119,7 @@ xyplot(total ~ interval| levels(daytype),
            data = interval.total.steps.imputed,
            type = "l",
            xlab = "Interval",
-           ylab = "Avg. Number of steps",
+           ylab = "Avg. number of steps",
            layout=c(1,2))
 ```
 
