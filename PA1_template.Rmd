@@ -8,17 +8,28 @@ output:
 ## Loading and preprocessing the data
 
 * Read the activity data
+* account for the intervals / plot jump issues by converting interval to actual minutes since start of day (e.g. 115 -> 75 minutes)
 * Create a filtered dataset, omitting the NA values
 * Calculate the Daily Total Steps 
-* Calculate the Total Steps for each inteval across days
+* Calculate the Total and Mean Steps for each interval across days
+* Setup some convenience variables for the x-axis in plots
 
 ```{r,results=FALSE,message=FALSE}
 require(dplyr)
+require(stringr)
 activity.file <- unzip("activity.zip")
 activity.data <- read.csv(activity.file)
+interval.labels <- unique(paste( substr(str_pad(activity.data$interval,4,pad="0"),1,2),":",substr(str_pad(activity.data$interval,4,pad="0"),3,4), sep=""))
+activity.data <- mutate(activity.data, interval = floor(interval/100)*60 + interval %% 60)
 activity.data.filtered <- na.omit(activity.data)
 daily.steps <- activity.data.filtered  %>% group_by(date) %>% summarise(total=sum(steps)) 
 interval.total.steps <- activity.data.filtered %>% group_by(interval) %>% summarise(total=sum(steps))
+interval.mean.steps <- activity.data.filtered %>% group_by(interval) %>% summarise(stepmean=mean(steps))
+
+plot.at <- c(1,180,360,540,720,900,1080,1260,1435)
+plot.xlabels <- c(interval.labels[1],interval.labels[37],interval.labels[73],interval.labels[109],interval.labels[145],interval.labels[181],interval.labels[217],interval.labels[253],interval.labels[288])
+
+
 ```
 
 
@@ -43,18 +54,19 @@ hist(daily.steps$total, xlab="Total Daily Steps", main= "Histogram of Total Dail
 ## What is the average daily activity pattern?
 
 * Determine the max step interval
-* Create the plot of Total Steps Across Days by Interval
+* Create the plot of Average Steps Across Days by Interval
 
 ```{r}
-max.step.interval <- interval.total.steps$interval[which.max(interval.total.steps$total)]
+max.step.interval <- interval.mean.steps$interval[which.max(interval.mean.steps$stepmean)]
 par(bg = "lightskyblue1")
-plot(interval.total.steps,type="l", xlab="Time Interval", ylab="Total Number of Steps", main = "Total Steps Across Days By Interval")
+plot(interval.mean.steps ,type="l", xlab="Time Interval", ylab="Average Number of Steps", main = "Average Steps Across Days By Interval",xaxt="n")
+axis(1, at=plot.at ,labels= plot.xlabels)
 abline(v=max.step.interval, col="yellow" , lwd=1, lty =2)
-text(toString(max.step.interval), x= max.step.interval, y = max(interval.total.steps$total),col="blue")
+text(paste(floor(max.step.interval/60),":",max.step.interval%%60,sep=""), x= max.step.interval, y = max(interval.mean.steps$stepmean),col="blue")
 ```
 
 
-+ **The 5 minute interval across all days in the dataset containing the maximum number of total steps is   _`r max.step.interval `_**
++ **The 5 minute interval across all days in the dataset containing the maximum number of total steps occurs at  _`r paste(floor(max.step.interval/60),":",max.step.interval%%60,sep="") `_**
 
 
 
@@ -77,16 +89,16 @@ na.steps <- sum(is.na(activity.data$steps))
 activity.data.imputed <- activity.data
 for(i in 1:nrow(activity.data)) {
     if(is.na(activity.data[i,1]) == TRUE) {
-      activity.data.imputed[i,1] <- round(interval.total.steps$total[which(interval.total.steps$interval ==  activity.data[i,3])]/length(unique(activity.data$date)))
+      activity.data.imputed[i,1] <- round(interval.total.steps$total[which(interval.total.steps$interval ==  activity.data[i,3])]/length(unique(activity.data.filtered$date)))
     }
 }
-daily.steps.imputed <- activity.data.imputed  %>% group_by(date) %>% summarise(total=sum(steps)) 
-mean.daily.steps.imupted <- mean(daily.steps.imputed$total)
-median.daily.steps.imputed <-median(daily.steps.imputed$total)
+daily.steps.imputed <- activity.data.imputed  %>% group_by(date) %>% summarise(meansteps=sum(steps)) 
+mean.daily.steps.imupted <- mean(daily.steps.imputed$meansteps)
+median.daily.steps.imputed <-median(daily.steps.imputed$meansteps)
 
 
 par(bg = "lightskyblue1")
-hist(daily.steps.imputed$total, xlab="Total Daily Steps(imputed missing values)", main= "Histogram of Total Daily Steps")
+hist(daily.steps.imputed$meansteps, xlab="Total Daily Steps(imputed missing values)", main= "Histogram of Total Daily Steps")
 
 ```
 
@@ -99,7 +111,7 @@ hist(daily.steps.imputed$total, xlab="Total Daily Steps(imputed missing values)"
 
 * Create a factor column to detemine Weekend/Weekday
 * Compute the Average Steps across weekdays, weekends by interval
-* Generate the reuqired panel xyplot 
+* Generate the required panel xyplot 
 
 
 ```{r message=FALSE}
@@ -116,6 +128,8 @@ xyplot(total ~ interval| levels(daytype),
            type = "l",
            xlab = "Interval",
            ylab = "Avg. number of steps",
-           layout=c(1,2))
+           layout=c(1,2),
+           scales =list(x=list(at=plot.at, labels= plot.xlabels)))
+
 ```
 
